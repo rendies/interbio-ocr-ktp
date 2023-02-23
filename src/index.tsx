@@ -17,6 +17,18 @@ const InterbioOcrKtp = NativeModules.InterbioOcrKtp
       }
     );
 
+export function isLoading(): boolean {
+  return InterbioOcrKtp.isLoading();
+}
+
+export function getOcrKtpResult() {
+  return InterbioOcrKtp.getOcrKtpResult();
+}
+
+export function loadOcrKtpActivity(): Promise<string> {
+  return InterbioOcrKtp.loadOcrKtpActivity();
+}
+
 export function multiply(a: number, b: number): Promise<number> {
   return InterbioOcrKtp.multiply(a, b);
 }

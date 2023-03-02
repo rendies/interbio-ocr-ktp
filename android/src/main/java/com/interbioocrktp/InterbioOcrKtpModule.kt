@@ -8,13 +8,39 @@ import android.content.Intent
 import android.app.Activity
 import com.enuba.ocrktpv2.*
 import com.google.gson.Gson
+import java.io.ByteArrayOutputStream
+import android.graphics.Bitmap
+import android.util.Base64
+import org.json.JSONObject
+import android.util.Log
 
 class InterbioOcrKtpModule(reactContext: ReactApplicationContext) :
   ReactContextBaseJavaModule(reactContext) {
   var loading = false;
   var result: String = "";
+  var ktpImageBase64: String = "";
+  var signatureBase64: String = "";
+  var isPhotocopy: Boolean = false;
+  var isPhotocopyScore: Float = 0f;
   override fun getName(): String {
     return NAME
+  }
+
+  @ReactMethod
+  fun getKtpImage(): String {
+    return ktpImageBase64
+  }
+  @ReactMethod
+  fun getSignature(): String {
+    return signatureBase64
+  }
+  @ReactMethod
+  fun getIsPhotocopyScore(): Float {
+    return isPhotocopyScore
+  }
+  @ReactMethod
+  fun getIsPhotocopy(): Boolean {
+    return isPhotocopy
   }
 
   // Example method
@@ -43,12 +69,29 @@ class InterbioOcrKtpModule(reactContext: ReactApplicationContext) :
     reactApplicationContext.startActivity(intent)
     PassedData.onKtpParsed = { ocrResult: OCRResult? ->
       ocrResult?.let {
-        android.util.Log.d("OCRKTP", "loadOcrKtpActivity: " + Gson().toJson(it))
-        this.result = Gson().toJson(it)
+        this.result = Gson().toJson(it.demographicData)
+        this.isPhotocopy = it.isPhotocopy
+        this.isPhotocopyScore = it.isPhotocopyScore
+        this.signatureBase64 = encodeImage(it.signature)!!
+        this.ktpImageBase64 = encodeImage(it.ktpImage)!!
         this.loading= false
-        promise.resolve(Gson().toJson(it))
+
+        val rootObject= JSONObject()
+        rootObject.put("demographicData", this.result)
+        rootObject.put("isPhotocopy", this.isPhotocopy)
+        rootObject.put("ktpImage", this.ktpImageBase64)
+        rootObject.put("signature", this.signatureBase64)
+        rootObject.put("isPhotocopyScore", this.isPhotocopyScore)
+        promise.resolve(rootObject.toString())
       }
     }
+  }
+
+  private fun encodeImage(bm: Bitmap): String? {
+    val baos = ByteArrayOutputStream()
+    bm.compress(Bitmap.CompressFormat.JPEG, 100, baos)
+    val b = baos.toByteArray()
+    return Base64.encodeToString(b, Base64.DEFAULT)
   }
 
   companion object {
